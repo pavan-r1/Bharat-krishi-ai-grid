@@ -12,6 +12,7 @@ __pycache__/
 .venv/
 venv/
 *.egg-info/
+backend/private_uploads/
 
 # Frontend
 node_modules/

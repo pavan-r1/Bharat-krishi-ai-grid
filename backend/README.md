@@ -1,210 +1,48 @@
-# BKIG Backend — Bharat Krishi Intelligence Grid
+# BKIG backend
 
-## 1. Project Overview
+FastAPI service backed by MongoDB. The bundled fraud model is trained on synthetic data; its score is experimental and must never be used as proof of fraud or as the sole basis for a claim decision.
 
-The **Bharat Krishi Intelligence Grid (BKIG)** is an AI-powered agricultural intelligence platform designed to support agricultural insurance claim management, fraud-risk assessment, and officer review workflows.
+## Local Windows setup
 
-This backend is built using Python, FastAPI, MongoDB Atlas, and a Random Forest machine learning model.
-
-It provides APIs that the frontend can use to submit claims, retrieve claims, assess claim risk, and record officer reviews.
-
-## 2. Technology Stack
-
-| Technology | Purpose |
-|---|---|
-| Python | Backend programming language |
-| FastAPI | REST API development |
-| MongoDB Atlas | Cloud database |
-| PyMongo | MongoDB connection and queries |
-| Pandas | Preparing model input data |
-| Scikit-learn | Random Forest model |
-| Joblib | Saving and loading the trained model |
-| Uvicorn | Running the API server |
-
-## 3. Project Structure
-
-```text
-backend/
-├── app/
-│   ├── __init__.py
-│   ├── main.py
-│   ├── database.py
-│   ├── api/
-│   │   ├── __init__.py
-│   │   ├── claims.py
-│   │   ├── assessment.py
-│   │   └── officer.py
-│   └── services/
-│       ├── __init__.py
-│       └── fraud_service.py
-├── ml/
-│   ├── train_model.py
-│   └── fraud_model.joblib
-├── test_mongodb.py
-├── .env
-├── requirements.txt
-└── README.md
-```
-
-The `.env` file contains local configuration and must not be committed to GitHub.
-
-## 4. Installation
-
-Open a terminal in the `backend` directory.
-
-Create and activate a virtual environment:
+From the repository root:
 
 ```powershell
-python -m venv .venv
+if (!(Test-Path backend\.env)) { Copy-Item backend\.env.example backend\.env }
+notepad backend\.env # configure MongoDB, JWT/OTP secrets, SMTP, and SMS credentials
 .\.venv\Scripts\Activate.ps1
-```
-
-Install dependencies:
-
-```powershell
-python -m pip install -r requirements.txt
-```
-
-## 5. Environment Configuration
-
-Create `backend/.env` with your own MongoDB Atlas connection details:
-
-```env
-MONGODB_URI=mongodb+srv://YOUR_USERNAME:YOUR_PASSWORD@YOUR_CLUSTER.mongodb.net/
-MONGODB_DB_NAME=bkig
-```
-
-Replace the placeholders with your actual connection details.
-
-**Security:** Never publish your database password or complete connection string.
-
-## 6. Train the Machine Learning Model
-
-From the `backend` directory, run:
-
-```powershell
-python .\ml\train_model.py
-```
-
-This generates:
-
-```text
-ml/fraud_model.joblib
-```
-
-The current prototype uses synthetic data and artificial labels to test the ML pipeline. Its scores and metrics do not demonstrate real-world fraud-detection performance.
-
-## 7. Start the Backend
-
-Run:
-
-```powershell
+python -m pip install -r backend\requirements.txt
+Set-Location backend
 python -m uvicorn app.main:app --reload --port 8000
 ```
 
-The API will be available at:
+For officer email OTP, configure SMTP values. Production farmer registration and login require an SMS provider; Twilio can be configured with `SMS_PROVIDER=twilio`, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, and `TWILIO_FROM_NUMBER`. Without SMS configuration, production farmer OTP endpoints return a configuration error and do not claim delivery. For local registration testing only, an explicitly enabled development environment can verify registrations without SMS delivery. Set random `JWT_SECRET` and `OTP_SECRET`; MongoDB is required for persistence and is never replaced with memory storage.
 
-- Base URL: `http://127.0.0.1:8000`
-- Interactive API documentation: `http://127.0.0.1:8000/docs`
-- Database health endpoint: `http://127.0.0.1:8000/api/v1/health/database`
+For local development or automated testing only, `APP_ENV` must be `development` or `testing`, and `DEV_OTP_ENABLED=true` must be set to enable local verification without SMS. Keep this option disabled in production.
 
-## 8. API Endpoints
+## BKIG agricultural assistant
 
-### Insurance Claims
+The floating assistant calls `POST /api/v1/chatbot/message` and uses the Google GenAI Python SDK from the backend. Set `GEMINI_API_KEY`, `GEMINI_MODEL`, and optionally `GEMINI_FALLBACK_MODEL` in `backend/.env`; the primary defaults to `gemini-3.8-flash` and the fallback defaults to `gemini-3.7-flash`. Never use a `VITE_` variable for the key. `GEMINI_TIMEOUT_SECONDS` is the timeout per model attempt. On transient model unavailability, network failure, or timeout, BKIG tries the fallback once. If Gemini still cannot respond, the chatbot provides a clearly labeled local BKIG help answer instead of an error. Replies support English, Kannada, and Hindi; the widget can auto-detect the script or use the language selector. The assistant keeps conversation history in browser memory only and does not persist chat messages. It can include official daily AGMARKNET prices when `DATA_GOV_IN_API_KEY` is configured, the curated scheme directory, and claim status only for an authenticated farmer's own account. Database or market provider data that cannot be verified is reported as unavailable.
 
-| Method | Endpoint | Purpose |
-|---|---|---|
-| GET | `/api/v1/insurance/claims/` | Retrieve submitted claims |
-| POST | `/api/v1/insurance/claims/` | Create an insurance claim |
+## Authentication API
 
-### Fraud Risk Assessment
+- `POST /api/v1/auth/register` — farmer name/phone/password, sends a phone verification OTP.
+- `POST /api/v1/auth/register/verify` — verifies OTP and returns a session.
+- `POST /api/v1/auth/login` — validates a farmer phone/password or officer email/password and starts the corresponding OTP challenge.
+- `POST /api/v1/auth/resend-otp` — resends an active login or registration challenge after the cooldown.
+- `POST /api/v1/auth/login/verify-otp` — verifies the challenge and issues a short-lived JWT.
+- `GET /api/v1/auth/me` — returns the authenticated profile.
 
-| Method | Endpoint | Purpose |
-|---|---|---|
-| POST | `/api/v1/insurance/claims/{claim_id}/assessment` | Generate and save a risk assessment |
+Protected routes require `Authorization: Bearer <access_token>`. Farmers can read only their own claims and create claims; officers can access their review queue and record decisions.
 
-### Officer Review
+## Other routes
 
-| Method | Endpoint | Purpose |
-|---|---|---|
-| GET | `/api/v1/officer/claims` | Retrieve claims for review |
-| GET | `/api/v1/officer/claims/{claim_id}/assessments` | Retrieve assessment history |
-| POST | `/api/v1/officer/claims/{claim_id}/review` | Record an officer review |
+- `GET/POST /api/v1/insurance/claims/` — farmer claim list/create.
+- `GET /api/v1/insurance/claims/{claim_id}` — owned claim detail.
+- `POST /api/v1/insurance/claims/{claim_id}/evidence` and `GET /api/v1/insurance/claims/{claim_id}/evidence/{evidence_id}` — owner upload and owner/officer retrieval of validated image evidence.
+- `POST /api/v1/insurance/claims/{claim_id}/assessment` — authenticated assessment, limited to claim owner or officer.
+- `GET /api/v1/officer/claims` — officer queue.
+- `GET /api/v1/officer/claims/{claim_id}/assessments` — officer assessment history.
+- `POST /api/v1/officer/claims/{claim_id}/review` — officer decision and audit history.
+- `GET /api/v1/health/database` — MongoDB connectivity check.
 
-### Health
-
-| Method | Endpoint | Purpose |
-|---|---|---|
-| GET | `/` | Check API status |
-| GET | `/api/v1/health/database` | Check MongoDB connectivity |
-
-## 9. Example Claim Request
-
-Send a POST request to `/api/v1/insurance/claims/`:
-
-```json
-{
-  "farmer_name": "Test Farmer",
-  "farmer_id": "BKIG-DEMO-001",
-  "crop": "Ragi",
-  "district": "Bengaluru Rural",
-  "claimed_amount": 15000
-}
-```
-
-A successful request returns HTTP `201 Created` and a generated claim ID.
-
-## 10. Example Fraud Assessment Request
-
-Send a POST request to:
-
-`/api/v1/insurance/claims/{claim_id}/assessment`
-
-Request body:
-
-```json
-{
-  "area_hectares": 2.5,
-  "rainfall_mm": 80,
-  "previous_claims": 1,
-  "weather_match": 1
-}
-```
-
-The response includes a risk score, risk category, model version, and prediction ID.
-
-## 11. MongoDB Collections
-
-The application uses the following collections:
-
-- `insurance_claims` — submitted insurance claims.
-- `model_predictions` — generated fraud-risk assessments.
-- `officer_reviews` — recorded officer decisions and notes.
-
-MongoDB creates collections automatically when data is first inserted, unless they have been created explicitly.
-
-## 12. Frontend Integration
-
-The frontend team can use the FastAPI endpoints to display claims, retrieve assessment history, and submit officer reviews.
-
-Configure the frontend backend URL using:
-
-```env
-VITE_API_BASE_URL=http://127.0.0.1:8000
-```
-
-This URL is for local development only. A deployed frontend requires a reachable backend URL.
-
-## 13. Current Limitations and Next Steps
-
-- The fraud-risk model uses synthetic data, not verified real-world fraud cases.
-- Risk assessments are experimental and must not automatically reject claims.
-- Authentication and role-based authorization must be implemented before deployment.
-- Officer review records are currently stored separately from the original claim status.
-- Production deployment requires secure configuration, testing, monitoring, and suitable real-world model validation.
-
-## 14. Development Status
-
-The MongoDB Atlas connection, claim creation and retrieval, synthetic Random Forest training, fraud assessment API, assessment history, and officer review recording have been tested successfully in the local development environment.
-
-**Project:** AI-Powered Bharat Krishi Intelligence Grid (BKIG)
+Mandi price routes use the Ministry of Agriculture and Farmers Welfare daily market dataset through the Government of India Open Data API. Configure `DATA_GOV_IN_API_KEY` to enable it; the source is updated daily, not in real time. The scheme directory contains a limited set of official portal links and directs users to the current source for eligibility, documents, benefits, and application periods; it does not calculate eligibility or invent current rules. Frontend mock datasets are isolated and can only be enabled explicitly with `VITE_USE_MOCK=true`; those datasets are not live prices or verified eligibility decisions.

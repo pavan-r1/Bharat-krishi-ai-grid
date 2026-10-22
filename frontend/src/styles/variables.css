@@ -1,0 +1,77 @@
+:root {
+  /* Brand Color Palette - Exact BKIG Specification */
+  --color-forest-green: #173F2A;
+  --color-deep-green: #103B27;
+  --color-ivory-bg: #F7F1E3;
+  --color-warm-cream: #FFFDF7;
+  --color-harvest-gold: #D6A84F;
+  --color-gold-hover: #C5963E;
+  --color-gold-light: #FDF7E7;
+  --color-terracotta: #A64B2A;
+  --color-sage-green: #DDE4D0;
+  --color-sage-light: #EEF3E6;
+  
+  /* Text and Neutral Colors */
+  --color-text-primary: #173F2A;
+  --color-text-secondary: #4D554E;
+  --color-text-muted: #7A857D;
+  --color-border: #E4DEC9;
+  --color-border-subtle: #ECE6D5;
+  --color-surface-white: #FFFFFF;
+  --color-surface-card: #FFFDF7;
+  
+  /* Status Colors (Accessible, Agricultural-themed) */
+  --color-status-success: #2A6F4E;
+  --color-status-success-bg: #EAF4EE;
+  --color-status-success-border: #B7DEC8;
+  
+  --color-status-warning: #B87B14;
+  --color-status-warning-bg: #FCF5E8;
+  --color-status-warning-border: #F1D49B;
+  
+  --color-status-danger: #B53A35;
+  --color-status-danger-bg: #FDF0EF;
+  --color-status-danger-border: #F3BCBA;
+  
+  --color-status-info: #2B5E78;
+  --color-status-info-bg: #EEF5F8;
+  --color-status-info-border: #BCD5E2;
+
+  /* Typography */
+  --font-heading: 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
+  --font-serif-accent: 'Cormorant Garamond', Georgia, serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Poppins', var(--font-body);
+  --font-cursive: 'Caveat', 'Kalam', cursive;
+
+  /* Spacing */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+  --space-3xl: 4.5rem;
+
+  /* Border Radius */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(23, 42, 33, 0.05), 0 1px 2px rgba(23, 42, 33, 0.03);
+  --shadow-md: 0 4px 12px rgba(23, 42, 33, 0.06), 0 2px 4px rgba(23, 42, 33, 0.04);
+  --shadow-lg: 0 10px 25px rgba(23, 42, 33, 0.08), 0 4px 10px rgba(23, 42, 33, 0.05);
+  --shadow-xl: 0 20px 40px rgba(23, 42, 33, 0.12);
+
+  /* Layout */
+  --header-height: 73px;
+  --sidebar-width: 260px;
+  --sidebar-collapsed-width: 80px;
+  --topbar-height: 70px;
+  --max-content-width: 1280px;
+  --transition-default: all 0.2s ease-in-out;
+}
